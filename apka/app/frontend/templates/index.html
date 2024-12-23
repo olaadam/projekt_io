@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>NoteWriter</title>
+        <link rel="stylesheet" href="static/styles.css">
+        <link rel="icon" type="image/x-icon" href="static/logoo.png">
+    </head>
+<body>
+    <div class="container">
+        <h1>Witaj w aplikacji!</h1>
+        <button id="record-btn">Wybierz okno do nagrywania</button>
+        <div id="window-selection" class="selection" style="display: none;">
+            <h2>Wybierz okno:</h2>
+            <select id="window-list"></select>
+            <div class="button-row">
+                <button id="startButton" class="start-button" onclick="startRecording()" disabled>Rozpocznij nagrywanie</button>
+                <button id="stopButton" class="stop-button" onclick="stopRecording()" disabled>Zakończ nagrywanie</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const recordBtn = document.getElementById("record-btn");
+        const windowSelection = document.getElementById("window-selection");
+        const windowList = document.getElementById("window-list");
+        const startRecordingBtn = document.getElementById("start-recording-btn");
+        const stopRecordingBtn = document.getElementById("stop-recording-btn");
+
+        let isRecording = false;
+
+        // Pobierz listę okien po kliknięciu przycisku
+        recordBtn.addEventListener("click", async () => {
+            const response = await fetch("/list_windows");
+            const windows = await response.json();
+            windowList.innerHTML = ""; // Wyczyszczenie listy
+
+            windows.forEach(window => {
+                const option = document.createElement("option");
+                option.value = window;
+                option.textContent = window;
+                windowList.appendChild(option);
+            });
+
+            windowSelection.style.display = "block";
+            startButton.disabled = false;
+            stopButton.disabled = true; 
+        });
+
+        // Rozpocznij nagrywanie
+        async function startRecording() {
+            const selectedWindow = windowList.value;
+            if (!selectedWindow) {
+                alert("Proszę wybrać okno do nagrywania!");
+                return;
+            }
+
+            const response = await fetch("/record_window", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    window_title: selectedWindow,
+                }),
+            });
+
+            const result = await response.json();
+            alert(result.message);
+
+            // Zmieniamy stan przycisków
+            isRecording = true;
+            startButton.disabled = true; // Dezaktywujemy przycisk "Rozpocznij"
+            stopButton.disabled = false; // Aktywujemy przycisk "Zakończ"
+        }
+
+        // Zatrzymaj nagrywanie
+        async function stopRecording() {
+            const response = await fetch("/stop_recording", { method: "POST" });
+            const result = await response.json();
+            alert(result.message);
+
+            // Zmieniamy stan przycisków
+            isRecording = false;
+            stopButton.disabled = true; // Dezaktywujemy przycisk "Zakończ"
+            windowSelection.style.display = "none"; // Ukryj sekcję wyboru okna
+        }
+    </script>
+</body>
+</html>
