@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>NoteWriter</title>
+        <link rel="stylesheet" href="static/styles.css">
+        <link rel="icon" type="image/x-icon" href="static/logoo.png">
+    </head>
+<body>
+    <div id="timer" class="timer" style="display: none;">Nagrywanie: 00:00</div>
+    <div class="container">
+        <h1>Witaj w aplikacji!</h1>
+        <button id="events-btn">Zobacz swoje wydarzenia!</button>
+        <button id="record-btn">Wybierz okno do nagrywania</button>
+        <button id="recordings-btn">Zobacz swoje nagrania</button>
+        <div id="window-selection" class="selection" style="display: none;">
+            <h2>Wybierz okno:</h2>
+            <select id="window-list" style="display: none;"></select>
+            <div id="selected-window" style="display: none;">
+                <button id="change-window-btn">Zmień okno</button>
+            </div>
+            <div class="button-row">
+                <button id="startButton" class="start-button">Rozpocznij nagrywanie</button>
+                <button id="stopButton" class="stop-button" disabled>Zakończ nagrywanie</button>
+            </div>
+            <h2>Zapisz nagranie</h2>
+            <input type="text" id="recording-title" placeholder="Podaj tytuł nagrania (nie używaj polskich znaków!)">
+            <button id="save-recording" disabled>Zapisz</button>
+        </div>
+    </div>
+
+    <script>
+        const recordBtn = document.getElementById("record-btn");
+        const startButton = document.getElementById("startButton");
+        const stopButton = document.getElementById("stopButton");
+        const saveButton = document.getElementById("save-recording");
+        const titleInput = document.getElementById("recording-title");
+        const see_events = document.getElementById("events-btn");
+        const timerDisplay = document.getElementById("timer");
+        const see_recordings = document.getElementById("recordings-btn");
+
+
+        const windowSelection = document.getElementById("window-selection");
+        const selectedWindow = document.getElementById("selected-window");
+        const selectedWindowName = document.getElementById("selected-window-name");
+        const changeWindowBtn = document.getElementById("change-window-btn");
+
+        let mediaRecorder;
+        let recordedChunks = [];
+        let stream; // Przechowujemy odniesienie do strumienia
+        let recordingStartTime;
+        let timerInterval;
+
+        see_events.addEventListener("click", () => {
+            window.location.href = "/events"; // Przenosi użytkownika na podstronę /events
+        });
+
+        see_recordings.addEventListener("click", () => {
+            window.location.href = "/my_recordings"; // Przenosi użytkownika na podstronę /events
+        });
+
+        // Funkcja do pobrania okna
+        async function selectWindow() {
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: true,
+                    audio: true
+                });
+                handleStream(stream);
+                document.getElementById("window-selection").querySelector("h2").style.display = "none";
+                windowSelection.style.display = "block";
+                recordBtn.style.display = "none";
+                selectedWindow.style.display = "block"; // Pokażemy wybrane okno
+                // Jeśli wybrano okno aplikacji, wyświetlimy nazwę okna (domyślnie label z getTracks)
+                let selectedWindowTitle = stream.getTracks()[0].label; // Label strumienia może zawierać informacje
+
+                // Jeśli to strona, możemy uzyskać tytuł strony (dotyczy okien przeglądarki)
+                if (document.title) {
+                    let pageTitle = document.title;
+                    selectedWindowTitle = pageTitle; // Ustawiamy tytuł strony jako nazwę okna
+                }
+
+                // Wyświetlamy nazwę wybranego okna
+                selectedWindowName.textContent = selectedWindowTitle;
+                changeWindowBtn.style.display = "inline-block"; // Pokażemy przycisk do zmiany okna
+            } catch (error) {
+                console.error("Błąd podczas wybierania okna:", error);
+            }
+        }
+
+        // Funkcja zmieniająca okno do nagrywania
+        changeWindowBtn.onclick = () => {
+            selectedWindow.style.display = "none"; // Ukrywamy obecne okno
+            selectWindow(); // Ponownie wybieramy okno
+        }
+
+        // Obsługa strumienia
+        function handleStream(stream) {
+            mediaRecorder = new MediaRecorder(stream);
+            recordedChunks = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: "video/webm" });
+                saveButton.disabled = false;
+                saveButton.onclick = () => saveRecording(blob);
+            };
+
+            startButton.onclick = () => {
+                try {
+                    if (mediaRecorder.state === "inactive") {
+                        mediaRecorder.start();
+                        console.log("Nagrywanie rozpoczęte...");
+                        alert("Nagrywanie rozpoczęte...");
+
+                        // Uruchomienie timera
+                        recordingStartTime = Date.now();
+                        timerInterval = setInterval(updateTimer, 1000); // Co sekundę aktualizuje czas
+                        timerDisplay.style.display = "block"; // Pokazujemy zegar
+                        startButton.disabled = true;
+                        stopButton.disabled = false;
+                   } else {
+                        throw new Error("Nagrywanie już trwa.");
+                        alert("Nagrywanie już trwa.");
+                    }
+                } catch (error) {
+                    alert("Błąd podczas rozpoczęcia nagrywania: " + error.message);
+                }
+            };
+
+            stopButton.onclick = () => {
+                try {
+                    if (mediaRecorder.state === "recording") {
+                        mediaRecorder.stop();
+                        console.log("Nagrywanie zatrzymane.");
+                        alert("Nagrywanie zatrzymane.")
+                        startButton.disabled = false;
+                        stopButton.disabled = true;
+                    } else {
+                        throw new Error("Nagrywanie nie zostało rozpoczęte.");
+                        alert("Nagrywanie nie zostało jeszcze rozpoczęte");
+                    }
+                } catch (error) {
+                    alert("Błąd podczas zatrzymywania nagrywania: " + error.message);
+                }
+                clearInterval(timerInterval); // Zatrzymanie timera
+            };
+        }
+        
+        // Funkcja do aktualizacji czasu nagrywania
+        function updateTimer() {
+            const elapsedTime = Math.floor((Date.now() - recordingStartTime) / 1000); // Czas w sekundach
+            const minutes = String(Math.floor(elapsedTime / 60)).padStart(2, '0'); // Minuty
+            const seconds = String(elapsedTime % 60).padStart(2, '0'); // Sekundy
+            timerDisplay.textContent = `${minutes}:${seconds}`;
+        }
+        
+        // Zapis nagrania
+        async function saveRecording(blob) {
+            const title = titleInput.value || "Nagranie bez tytułu";
+            const formData = new FormData();
+            formData.append("file", blob, `${title}.webm`);
+            formData.append("title", title);
+
+            try {
+                const response = await fetch("/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+                document.getElementById("timer").style.display = "none"; // Ukrywamy zegar
+                if (response.ok) {
+                    alert("Nagranie zapisane!");
+                    if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                        console.log("Strumień zatrzymany.");
+                    }
+                } else {
+                    alert("Błąd podczas zapisywania.");
+                }
+            } catch (error) {
+                console.error("Błąd podczas wysyłania pliku:", error);
+            }
+        
+        timerDisplay.style.display = "none"; // Ukrycie zegara
+        document.getElementById("window-selection").style.display = "none"; // Ukrycie sekcji wyboru okna
+        recordBtn.style.display = "block"; // Pokazanie przycisku do wyboru okna
+        titleInput.value = ""; // Czyszczenie tytułu nagrania
+        saveButton.disabled = true; // Wyłączenie przycisku zapisz
+        }
+
+        // Inicjalizacja funkcji
+        recordBtn.addEventListener("click", selectWindow);
+    </script>
+</body>
+</html>
