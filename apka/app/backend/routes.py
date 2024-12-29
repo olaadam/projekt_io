@@ -8,6 +8,8 @@ import os
 from flask import current_app, send_from_directory
 from werkzeug.utils import secure_filename
 import logging
+from datetime import datetime
+import pytz
 
 main = Blueprint('main', __name__, template_folder="../frontend/templates", static_folder="../frontend/static")
 
@@ -88,7 +90,7 @@ def setup_upload_folder():
 
 logging.basicConfig(level=logging.DEBUG)
 
-@main.route('/upload', methods=['POST'])
+@main.route('/save', methods=['POST'])
 def upload_file():
     try:
         if 'file' not in request.files:
@@ -96,7 +98,13 @@ def upload_file():
             return 'Brak pliku w żądaniu', 400
         
         file = request.files['file']
-        title = request.form.get('title', 'bez_tytulu')
+        title = request.form.get('title')
+        if not title:
+            tz = pytz.timezone('Europe/Warsaw')
+            now = datetime.now(tz)
+            date_part = now.strftime("%Y-%m-%d")  
+            time_part = now.strftime("%H-%M-%S")  
+            title = f"{date_part}_{time_part}"
         logging.debug(f'Plik: {file.filename}, Tytuł: {title}')
         
         if file and allowed_file(file.filename):
