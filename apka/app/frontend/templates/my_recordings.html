@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="static/styles.css">
+    <link rel="icon" type="image/x-icon" href="static/logoo.png">
+    <title>Nagrania</title>
+</head>
+<body>
+    <h1>Lista Nagrań</h1>
+    <ul>
+        {% for recording in recordings %}
+            <li>
+                <a href="{{ url_for('static', filename='uploads/' + recording) }}" target="_blank">{{ recording }}</a>
+                <video width="320" height="240" controls>
+                    <source src="{{ url_for('static', filename='uploads/' + recording) }}" type="video/mp4">
+                    Twoja przeglądarka nie wspiera tego formatu wideo.
+                </video>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
