@@ -143,7 +143,7 @@ async function saveRecording(blob) {
         });
         document.getElementById("timer").style.display = "none"; // Ukrywamy zegar
         if (response.ok) {
-            alert("Nagranie zapisane!");
+            showNotification("Nagranie zapisane!", "success");
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
                 console.log("Strumień zatrzymany.");
