@@ -131,13 +131,13 @@ function updateTimer() {
 
 // Zapis nagrania
 async function saveRecording(blob) {
-    const title = titleInput.value || "Nagranie bez tytułu";
+    const title = titleInput.value;
     const formData = new FormData();
     formData.append("file", blob, `${title}.webm`);
     formData.append("title", title);
 
     try {
-        const response = await fetch("/upload", {
+        const response = await fetch("/save", {
             method: "POST",
             body: formData,
         });
