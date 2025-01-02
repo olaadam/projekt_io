@@ -1,15 +1,17 @@
-from flask import Blueprint, Flask, jsonify, render_template, request
+from flask import Blueprint, Flask, jsonify, render_template, request, current_app, send_from_directory
 from .calendar_integration import get_calendar_events
 import pygetwindow as gw
 from threading import Thread
 import time
-from .recording import record_window, stop_recording, convert_webm_to_mp4
+from .recording import record_window, stop_recording
 import os
-from flask import current_app, send_from_directory
 from werkzeug.utils import secure_filename
 import logging
 from datetime import datetime
 import pytz
+from moviepy.video.io.VideoFileClip import VideoFileClip
+import subprocess
+import ffmpeg
 
 main = Blueprint('main', __name__, template_folder="../frontend/templates", static_folder="../frontend/static")
 
@@ -17,11 +19,6 @@ main = Blueprint('main', __name__, template_folder="../frontend/templates", stat
 @main.route("/")
 def index():
     return render_template("index.html")
-
-@main.route('/my_recordings')
-def my_recordings():
-    # Twoja logika obsługi strony z nagraniami
-    return render_template('my_recordings.html')
 
 @main.route('/events')
 def events():
@@ -76,7 +73,7 @@ def stop_recording_route():
     except Exception as e:
         return jsonify({"message": f"Błąd podczas zatrzymywania nagrywania: {str(e)}"}), 500
 
-UPLOAD_FOLDER = "recordings"
+UPLOAD_FOLDER = os.path.join(os.getcwd(), 'recordings')
 ALLOWED_EXTENSIONS = {'webm', 'mp4', 'avi'}
 
 def allowed_file(filename):
@@ -119,16 +116,49 @@ def upload_file():
         logging.error(f'Błąd: {str(e)}')
         return f'Błąd przy zapisywaniu pliku: {str(e)}', 500
 
-@main.route("/recordings")
-def recordings():
-    # Pobieranie listy plików z folderu uploadów
-    files = os.listdir(UPLOAD_FOLDER)
-    recordings = [file for file in files if file.endswith(".webm")]  # Tylko pliki MP4
-    return render_template("recordings.html", recordings=recordings)
+@main.route('/my_recordings')
+def show_recordings():
+    # Pobierz listę plików z folderu recordings
+    recordings = os.listdir(UPLOAD_FOLDER)
+    recordings = [f for f in recordings if f.endswith(('.mp4', '.webm', '.mov', '.avi'))]  # Filtruj tylko pliki wideo
+    return render_template('my_recordings.html', recordings=recordings)
 
-@main.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
+@main.route('/recordings/<filename>')
+def get_recording(filename):
+    try:
+        return send_from_directory(UPLOAD_FOLDER, filename)
+    except FileNotFoundError:
+        return "File not found", 404
 
+@main.route('/debug/recordings')
+def debug_recordings():
+    return str(os.listdir(UPLOAD_FOLDER))
+
+@main.route('/convert/<filename>')
+def convert_file(filename):
+    input_path = os.path.join(UPLOAD_FOLDER, filename)
+    output_path = os.path.join(UPLOAD_FOLDER, filename.rsplit('.', 1)[0] + '.mp4')
+    file_extension = filename.split('.')[-1].lower()
+
+    if not os.path.exists(input_path):
+        logging.error(f"Plik wejściowy nie istnieje: {input_path}")
+        return "File not found", 404
+    if file_extension == 'mp4':
+        # Jeśli plik jest MP4, nie konwertujemy go
+        return send_from_directory(UPLOAD_FOLDER, filename)
+
+    try:
+        logging.info(f"Rozpoczynanie konwersji: {input_path} -> {output_path}")
+        subprocess.run(['ffmpeg', '-y','-i', input_path, output_path], check=True)
+        logging.info(f"Plik przekonwertowany: {output_path}")
+        return send_from_directory(UPLOAD_FOLDER, os.path.basename(output_path))
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Błąd konwersji pliku: {e}")
+        return f"Błąd konwersji: {e}", 500
+    except Exception as e:
+        # Logowanie innych błędów
+        logging.error(f"Nieoczekiwany błąd: {e}")
+        return "An unexpected error occurred", 500
+        
 if __name__ == "__main__":
     main.run(debug=True)
