@@ -1,6 +1,7 @@
-from flask import Blueprint, Flask, jsonify, render_template, request, current_app, send_from_directory
+from flask import Blueprint, Flask, jsonify, render_template, current_app, request, send_from_directory
 from .calendar_integration import get_calendar_events
 import pygetwindow as gw
+import ffmpeg
 from threading import Thread
 import time
 from .recording import record_window, stop_recording
@@ -11,7 +12,6 @@ from datetime import datetime
 import pytz
 from moviepy.video.io.VideoFileClip import VideoFileClip
 import subprocess
-import ffmpeg
 
 main = Blueprint('main', __name__, template_folder="../frontend/templates", static_folder="../frontend/static")
 
@@ -19,6 +19,7 @@ main = Blueprint('main', __name__, template_folder="../frontend/templates", stat
 @main.route("/")
 def index():
     return render_template("index.html")
+
 
 @main.route('/events')
 def events():
@@ -88,20 +89,21 @@ def setup_upload_folder():
 logging.basicConfig(level=logging.DEBUG)
 
 @main.route('/save', methods=['POST'])
-def upload_file():
+def save_file():
     try:
         if 'file' not in request.files:
-            logging.error('Brak pliku w żądaniu')
-            return 'Brak pliku w żądaniu', 400
+            return jsonify({"error": "Brak pliku w żądaniu"}), 400
         
         file = request.files['file']
-        title = request.form.get('title')
+        title = request.form.get('title')  
+        
         if not title:
             tz = pytz.timezone('Europe/Warsaw')
             now = datetime.now(tz)
             date_part = now.strftime("%Y-%m-%d")  
             time_part = now.strftime("%H-%M-%S")  
             title = f"{date_part}_{time_part}"
+        
         logging.debug(f'Plik: {file.filename}, Tytuł: {title}')
         
         if file and allowed_file(file.filename):
@@ -115,6 +117,7 @@ def upload_file():
     except Exception as e:
         logging.error(f'Błąd: {str(e)}')
         return f'Błąd przy zapisywaniu pliku: {str(e)}', 500
+
 
 @main.route('/my_recordings')
 def show_recordings():
@@ -134,11 +137,13 @@ def get_recording(filename):
 def debug_recordings():
     return str(os.listdir(UPLOAD_FOLDER))
 
+
 @main.route('/convert/<filename>')
 def convert_file(filename):
     input_path = os.path.join(UPLOAD_FOLDER, filename)
     output_path = os.path.join(UPLOAD_FOLDER, filename.rsplit('.', 1)[0] + '.mp4')
     file_extension = filename.split('.')[-1].lower()
+
 
     if not os.path.exists(input_path):
         logging.error(f"Plik wejściowy nie istnieje: {input_path}")
@@ -159,6 +164,6 @@ def convert_file(filename):
         # Logowanie innych błędów
         logging.error(f"Nieoczekiwany błąd: {e}")
         return "An unexpected error occurred", 500
-        
+
 if __name__ == "__main__":
     main.run(debug=True)
