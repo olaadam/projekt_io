@@ -1,24 +1,82 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="static/styles.css">
+    <title>My Recordings</title>
     <link rel="icon" type="image/x-icon" href="static/logoo.png">
-    <title>Nagrania</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles2.css') }}">
 </head>
 <body>
-    <h1>Lista Nagrań</h1>
-    <ul>
-        {% for recording in recordings %}
+    <!-- Przyciski i linki w prawym górnym rogu -->
+    <div class="top-nav">
+        <a href="/" class="back-to-home">Back to Home</a>
+    </div>
+
+    <div class="container">
+        <h1>My Recordings</h1>
+        <ul class="recording-list">
+            {% for recording in recordings %}
             <li>
-                <a href="{{ url_for('static', filename='uploads/' + recording) }}" target="_blank">{{ recording }}</a>
-                <video width="320" height="240" controls>
-                    <source src="{{ url_for('static', filename='uploads/' + recording) }}" type="video/mp4">
-                    Twoja przeglądarka nie wspiera tego formatu wideo.
-                </video>
+                <a href="javascript:void(0);" onclick="openVideoModal('{{ recording }}')">{{ recording }}</a>
             </li>
-        {% endfor %}
-    </ul>
+            {% endfor %}
+        </ul>
+        
+    </div>
+    <div id="videoModal" class="fullscreen-modal" style="display: none;">
+        <div class="modal-content">
+            <video id="videoPlayer" controls>
+                <source id="videoSource" src="" type="video/mp4">
+                Twoja przeglądarka nie obsługuje wideo w tym formacie.
+            </video>
+            <div class="video-navigation">
+                <button id="closeModal" class="close-button" onclick="closeVideoModal()">×</button>
+                <button id="prevVideo" onclick="navigateVideo(-1)">Previous</button>
+                <button id="nextVideo" onclick="navigateVideo(1)">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+let currentVideoIndex = 0; // Index aktualnego nagrania
+let recordings = [];
+
+// Funkcja do otwierania modala
+function openVideoModal(videoFilename, index) {
+    currentVideoIndex = index;
+
+    const modal = document.getElementById('videoModal');
+    const videoSource = document.getElementById('videoSource');
+    const videoPlayer = document.getElementById('videoPlayer');
+
+    // Próbujemy załadować plik MP4
+    const mp4Url = `/convert/${videoFilename}`;
+    videoSource.src = mp4Url;
+
+    // Wczytanie wideo
+    videoPlayer.load();
+    modal.style.display = 'flex'; // Wyświetlamy modal
+}
+
+function closeVideoModal() {
+    const modal = document.getElementById('videoModal');
+    const videoPlayer = document.getElementById('videoPlayer');
+
+    modal.style.display = 'none'; // Ukrycie modala
+    videoPlayer.pause(); // Zatrzymanie wideo
+}
+
+// Funkcja do nawigacji między nagraniami (nie działa)
+function navigateVideo(direction) {
+    currentVideoIndex += direction; // Zmieniamy indeks na poprzedni/następny
+    if (currentVideoIndex < 0) currentVideoIndex = recordings.length - 1; // Cofamy na ostatni
+    if (currentVideoIndex >= recordings.length) currentVideoIndex = 0; // Wracamy na pierwszy
+
+    // Ładujemy nowe wideo
+    const nextRecording = recordings[currentVideoIndex];
+    openVideoModal(nextRecording.filename, currentVideoIndex);
+}
+    </script>
 </body>
 </html>
