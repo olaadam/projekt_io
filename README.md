@@ -1,12 +1,9 @@
 # projekt_io
-wersje testowe projektu z inżynierii oprogramowania
-
 odpalanie - najpierw pip install -r requirements.txt (oraz requirements2.txt)
 z cmd z poziomu katalogu głównego - python -m main
-pozdroooo
-prosze o info zwrotne czy i jak działa ;)
 
-konieczne wpisanie komendu z poziomu /app w command line: winget install "FFmpeg (Essentials Build)"
+konieczne wpisanie komendy z poziomu /app w command line: winget install "FFmpeg (Essentials Build)"
 sprawdź czy zostało pobrane - po wpisaniu komendy zamknij cmd i otwórz nowe
 wejdź do poziomu aplikacji - /app najdalej i wpisz ffmpeg
-jeęli pojawiają ci się informacje o rozszerzeniu - slay
+jeęli pojawiają się informacje o rozszerzeniu - działa
+//możliwy błąd do poprawy - ffmpeg czasem stwarza problemy i potrzebuje zmiany ścieżki - linijka 67 pliku recording.py w folderze backend - zamiast 'ffmpeg' trzeba będzie wpisać 'ffmpeg/bin/ffmpeg' (nie wiem od czego to zależy)
