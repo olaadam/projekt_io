@@ -50,6 +50,7 @@ ALLOWED_EXTENSIONS = {'webm', 'mp4', 'avi'}
 
 @main.route("/record_window", methods=["POST"])
 def record_window_route():
+    setup_upload_folder()
     data = request.get_json()
     window_title = data.get("window_title")
 
@@ -89,6 +90,7 @@ def save_recording_route():
 
 @main.route('/my_recordings')
 def show_recordings():
+    setup_upload_folder()
     # Pobierz listę plików z folderu recordings
     recordings = os.listdir(UPLOAD_FOLDER)
     recordings = [f for f in recordings if f.endswith(('.mp4', '.webm', '.mov', '.avi'))]  # Filtruj tylko pliki wideo
