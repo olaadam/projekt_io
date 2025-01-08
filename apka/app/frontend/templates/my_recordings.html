@@ -32,31 +32,29 @@
             </video>
             <div class="video-navigation">
                 <button id="closeModal" class="close-button" onclick="closeVideoModal()">×</button>
-                <button id="prevVideo" onclick="navigateVideo(-1)">Previous</button>
-                <button id="nextVideo" onclick="navigateVideo(1)">Next</button>
             </div>
         </div>
     </div>
 
     <script>
-let currentVideoIndex = 0; // Index aktualnego nagrania
 let recordings = [];
 
 // Funkcja do otwierania modala
 function openVideoModal(videoFilename, index) {
-    currentVideoIndex = index;
 
     const modal = document.getElementById('videoModal');
     const videoSource = document.getElementById('videoSource');
     const videoPlayer = document.getElementById('videoPlayer');
 
-    // Próbujemy załadować plik MP4
-    const mp4Url = `/convert/${videoFilename}`;
+    // Zakładamy, że wszystkie pliki są już MP4
+    const mp4Url = `/../recordings/${videoFilename}`; // Ścieżka do katalogu z MP4
     videoSource.src = mp4Url;
 
     // Wczytanie wideo
     videoPlayer.load();
-    modal.style.display = 'flex'; // Wyświetlamy modal
+
+    // Wyświetlenie modala
+    modal.style.display = 'flex';
 }
 
 function closeVideoModal() {
@@ -67,16 +65,6 @@ function closeVideoModal() {
     videoPlayer.pause(); // Zatrzymanie wideo
 }
 
-// Funkcja do nawigacji między nagraniami (nie działa)
-function navigateVideo(direction) {
-    currentVideoIndex += direction; // Zmieniamy indeks na poprzedni/następny
-    if (currentVideoIndex < 0) currentVideoIndex = recordings.length - 1; // Cofamy na ostatni
-    if (currentVideoIndex >= recordings.length) currentVideoIndex = 0; // Wracamy na pierwszy
-
-    // Ładujemy nowe wideo
-    const nextRecording = recordings[currentVideoIndex];
-    openVideoModal(nextRecording.filename, currentVideoIndex);
-}
     </script>
 </body>
 </html>
