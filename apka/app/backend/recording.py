@@ -59,26 +59,40 @@ def save_recording(file, title=None):
     webm_path = os.path.join(UPLOAD_FOLDER, f"{title}.webm")
     file.save(webm_path)
 
+    # Ścieżka do pliku wav (audio)
+    wav_path = os.path.join(UPLOAD_FOLDER, f"{title}.wav")
     # Ścieżka do pliku końcowego (mp4)
     mp4_path = os.path.join(UPLOAD_FOLDER, f"{title}.mp4")
 
-    # Konwersja do MP4
+    # Konwersja webm -> wav
     try:
         subprocess.run(
-            ['ffmpeg', '-i', webm_path, '-c:v', 'libx264', '-c:a', 'aac', mp4_path],
+            ['ffmpeg', '-i', webm_path, '-vn', wav_path],  # '-vn' oznacza brak wideo
             check=True
         )
-        # Usunięcie pliku .webm po konwersji
-        os.remove(webm_path)
+        logging.debug(f'Plik WAV zapisany: {wav_path}')
     except subprocess.CalledProcessError as e:
-        logging.error(f'Błąd podczas konwersji pliku: {str(e)}')
+        logging.error(f'Błąd podczas konwersji do WAV: {str(e)}')
+        raise RuntimeError('Konwersja do WAV nie powiodła się.') from e
+
+    # Konwersja wav -> mp4
+    try:
+        subprocess.run(
+            ['ffmpeg', '-i', wav_path, '-i', webm_path,  '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', 
+             '-c:v', 'libx264', '-c:a', 'aac', mp4_path],
+            check=True
+        )
+        logging.debug(f'Plik MP4 zapisany: {mp4_path}')
+    except subprocess.CalledProcessError as e:
+        logging.error(f'Błąd podczas konwersji do MP4: {str(e)}')
         raise RuntimeError('Konwersja do MP4 nie powiodła się.') from e
-    except Exception as e:
-        logging.error(f'Nieoczekiwany błąd podczas konwersji pliku: {str(e)}')
-        raise RuntimeError('Nieoczekiwany błąd podczas konwersji.') from e
+
+    # Usunięcie pliku .webm po konwersji
+    os.remove(webm_path)
 
     if not os.path.exists(mp4_path):
         logging.error('Plik MP4 nie został utworzony.')
         raise RuntimeError('Nie udało się utworzyć pliku MP4.')
 
-    return mp4_path
+    # Zwrócenie ścieżek do plików
+    return mp4_path, wav_path
