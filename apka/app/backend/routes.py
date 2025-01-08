@@ -93,14 +93,16 @@ def show_recordings():
     setup_upload_folder()
     # Pobierz listę plików z folderu recordings
     recordings = os.listdir(UPLOAD_FOLDER)
-    recordings = [f for f in recordings if f.endswith(('.mp4', '.webm', '.mov', '.avi'))]  # Filtruj tylko pliki wideo
+    recordings = [f for f in recordings if f.endswith(('.mp4'))]  # Filtruj tylko pliki wideo
+    recordings = [os.path.splitext(f)[0] for f in recordings]
     return render_template('my_recordings.html', recordings=recordings)
 
 
 @main.route('/recordings/<filename>')
 def get_recording(filename):
     try:
-        return send_from_directory(UPLOAD_FOLDER, filename)
+        file_extension = '.mp4'
+        return send_from_directory(UPLOAD_FOLDER, filename + file_extension)
     except FileNotFoundError:
         return "File not found", 404
 
